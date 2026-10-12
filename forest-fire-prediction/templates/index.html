@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forest Fire Prediction System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+<header class="hero text-center">
+  <div class="container">
+    <i class="fa-solid fa-tree hero-icon"></i>
+    <h1>Forest Fire Prediction System</h1>
+    <p class="lead">AI-powered wildfire risk prediction using weather and Fire Weather Index data</p>
+    <a href="#predict" class="btn btn-light btn-lg rounded-pill px-4">Try the Predictor</a>
+  </div>
+</header>
+
+<main class="container pb-5">
+  <section id="predict" class="glass p-4 p-md-5 mb-5">
+    <h2 class="mb-4"><i class="fa-solid fa-sliders me-2"></i>Prediction Dashboard</h2>
+    {% if errors %}
+    <div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <form method="post" action="{{ url_for('predict') }}" id="predict-form" novalidate>
+      {% for group, title, icon in [('weather','Weather Conditions','fa-cloud-sun'),('fwi','Fire Weather Index','fa-fire-flame-simple')] %}
+      <h5 class="mt-3 mb-3"><i class="fa-solid {{ icon }} me-2"></i>{{ title }}</h5>
+      <div class="row g-3 mb-3">
+        {% for name,label,unit,step,ph,tip,g in fields if g == group %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <label class="form-label" for="{{ name }}">{{ label }}{% if unit %} ({{ unit }}){% endif %}
+            <i class="fa-regular fa-circle-question ms-1" data-bs-toggle="tooltip" title="{{ tip }}"></i></label>
+          <input class="form-control" type="number" id="{{ name }}" name="{{ name }}" required
+                 step="{{ step }}" min="{{ limits[name][0] }}" max="{{ limits[name][1] }}"
+                 placeholder="{{ ph }}" value="{{ form.get(name, '') }}">
+          <div class="form-text">Range {{ limits[name][0] }}–{{ limits[name][1] }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <div class="d-flex gap-2 mt-4">
+        <button class="btn btn-forest btn-lg px-5" type="submit"><i class="fa-solid fa-bolt me-2"></i>Predict</button>
+        <button class="btn btn-outline-light btn-lg" type="button" id="fill-sample">Fill sample</button>
+      </div>
+    </form>
+  </section>
+
+  {% if result %}
+  <section id="result" class="glass p-4 p-md-5 mb-5 text-center result-{{ 'fire' if result.label == 'FIRE' else 'safe' }}">
+    <h6 class="text-uppercase tracking">Forest Fire Risk</h6>
+    <h2 class="my-3">{{ '🔥 FIRE — HIGH FIRE RISK' if result.label == 'FIRE' else '🌿 NOT FIRE' }}</h2>
+    <div class="gauge mx-auto my-4" data-value="{{ result.probability }}"><span>{{ result.probability }}%</span></div>
+    <p class="mb-1">Fire Probability: <strong>{{ result.probability }}%</strong></p>
+    <p>Risk Level: <span class="badge badge-risk">{{ result.risk | upper }}</span></p>
+    <p class="small mb-0">Based on the supplied meteorological and FWI conditions, the model estimates
+      this probability of fire. It does not guarantee a real-world outcome.
+      Risk levels are a UI interpretation of probability, not validated fire-danger thresholds.</p>
+  </section>
+  {% endif %}
+
+  <section class="row g-4 mb-5">
+    <div class="col-md-6"><div class="glass p-4 h-100">
+      <h4><i class="fa-solid fa-brain me-2"></i>Model Information</h4>
+      <ul class="mb-0"><li>Model: XGBoost Classifier</li><li>Task: Binary classification (Fire / Not Fire)</li>
+        <li>Dataset: Algerian Forest Fires (UCI)</li><li>Samples: 244 (Bejaia &amp; Sidi Bel-Abbes, 2012)</li></ul>
+    </div></div>
+    <div class="col-md-6"><div class="glass p-4 h-100">
+      <h4><i class="fa-solid fa-earth-asia me-2"></i>About the Project</h4>
+      <p class="mb-0">Wildfire risk is rising with changing climate and weather. Early, data-driven
+        prediction helps authorities prepare before ignition. This project applies machine learning to
+        weather and FWI measurements (SDG 13 – Climate Action, SDG 15 – Life on Land).</p>
+    </div></div>
+  </section>
+
+  <section class="glass p-4 mb-5">
+    <h4><i class="fa-solid fa-circle-info me-2"></i>Input Explanation</h4>
+    <div class="row">{% for name,label,unit,step,ph,tip,g in fields %}
+      <div class="col-md-6 mb-2"><strong>{{ label }}:</strong> {{ tip }}</div>{% endfor %}</div>
+  </section>
+
+  <p class="text-center disclaimer">This application is an educational machine-learning prototype and should not be used as an official wildfire warning or emergency decision system.</p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
